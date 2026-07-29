@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ステージ攻略RPG</title>
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #12121e;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* ゲーム全体をスマホ画面一杯（縦横比維持・レスポンシブ）に配置 */
+    .game-container {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      height: 100%;
+      max-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: #1e1e2e;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    }
+
+    /* 上部ステータスヘッダー */
+    .top-header {
+      width: 100%;
+      padding: 8px 12px;
+      background-color: #181825;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border-bottom: 2px solid #313244;
+      z-index: 10;
+    }
+
+    .stage-badge-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stage-badge {
+      font-size: 15px;
+      font-weight: 800;
+      color: #f1fa8c;
+      background-color: #282a36;
+      padding: 2px 10px;
+      border-radius: 12px;
+      border: 1px solid #ff79c6;
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    .hp-bars-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .hp-box {
+      flex: 1;
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 5px 8px;
+      border-radius: 8px;
+      border: 1.5px solid #44475a;
+    }
+
+    .hp-label {
+      font-size: 10px;
+      font-weight: bold;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+      color: #f8f8f2;
+    }
+
+    .hp-bar-container {
+      width: 100%;
+      height: 8px;
+      background-color: #282a36;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .hp-bar-fill {
+      width: 100%;
+      height: 100%;
+      background-color: #50fa7b;
+      transition: width 0.15s ease-out;
+    }
+
+    .enemy-hp-box .hp-bar-fill {
+      background-color: #ff5555;
+    }
+
+    /* ゲームプレイ画面 (ステージ) */
+    .stage {
+      flex: 1;
+      width: 100%;
+      position: relative;
+      background: linear-gradient(to bottom, #4a75d3, #72a2ed);
+      border-top: 2px solid #ff79c6;
+      border-bottom: 2px solid #ff79c6;
+      overflow: hidden;
+    }
+
+    /* 地面 */
+    .ground {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 48px;
+      background-image: url('haikei_1.png');
+      background-repeat: repeat-x;
+      background-size: auto 100%;
+      image-rendering: pixelated;
+    }
+
+    /* キャラクター */
+    .character-container {
+      position: absolute;
+      bottom: 24px;
+      width: 80px;
+      height: 80px;
+      z-index: 5;
+    }
+
+    .character-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
+    .boss-angry {
+      filter: drop-shadow(0 0 10px #ff0000) sepia(0.8) hue-rotate(-50deg) saturate(3);
+    }
+
+    /* 弾・衝撃波 */
+    .bullet {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      z-index: 6;
+      pointer-events: none;
+    }
+    .bullet img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
+    .shockwave {
+      position: absolute;
+      bottom: 48px;
+      height: 22px;
+      background: linear-gradient(to top, rgba(255, 85, 85, 0.9), rgba(255, 184, 108, 0));
+      border-top: 3px solid #ff79c6;
+      box-shadow: 0 0 12px #ff5555;
+      border-radius: 50% 50% 0 0;
+      z-index: 6;
+      pointer-events: none;
+    }
+
+    .dropped-item {
+      position: absolute;
+      bottom: 48px;
+      width: 32px;
+      height: 32px;
+      z-index: 7;
+      pointer-events: none;
+      animation: dropBounce 0.6s ease-out forwards;
+    }
+    .dropped-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
+    @keyframes dropBounce {
+      0% { transform: translateY(-25px); opacity: 0; }
+      50% { transform: translateY(0); opacity: 1; }
+      75% { transform: translateY(-8px); }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    /* ポップアップ演出 */
+    .damage-pop {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #ff5555;
+      font-size: 18px;
+      font-weight: 800;
+      text-shadow: 1px 1px 0px #000;
+      pointer-events: none;
+      animation: popUp 0.6s ease-out forwards;
+      white-space: nowrap;
+      z-index: 15;
+    }
+    .lvl-pop { color: #50fa7b; font-size: 16px; }
+    .miss-pop { color: #8be9fd; font-size: 16px; }
+    .get-pop { color: #f1fa8c; font-size: 14px; }
+    .success-pop { color: #f1fa8c; font-size: 20px; text-shadow: 0 0 10px #ff79c6; }
+    .fail-pop { color: #ff5555; font-size: 18px; }
+
+    @keyframes popUp {
+      0% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, -25px); }
+    }
+
+    /* スマホ向け操作パネル */
+    .mobile-controls {
+      width: 100%;
+      padding: 10px 12px 14px 12px;
+      background-color: #181825;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      touch-action: none;
+      z-index: 10;
+    }
+
+    /* 十字キーエリア */
+    .dpad-container {
+      width: 130px;
+      height: 130px;
+      position: relative;
+      background-image: url('yazirusi_1.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      image-rendering: pixelated;
+      flex-shrink: 0;
+    }
+
+    .dpad-btn {
+      position: absolute;
+      background: transparent;
+      border: none;
+      outline: none;
+    }
+    .dpad-btn.up { top: 0; left: 32px; width: 66px; height: 45px; }
+    .dpad-btn.left { bottom: 5px; left: 0; width: 50px; height: 55px; }
+    .dpad-btn.right { bottom: 5px; right: 0; width: 50px; height: 55px; }
+
+    /* アクションボタン群 */
+    .action-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sub-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .icon-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid #bd93f9;
+      background-color: #282a36;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 0 #6272a4;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .icon-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #6272a4;
+    }
+    .icon-btn.bag {
+      background-image: url('bag.png');
+      background-size: 60%;
+      background-repeat: no-repeat;
+      background-position: center;
+      image-rendering: pixelated;
+    }
+
+    .attack-btn {
+      width: 80px;
+      height: 80px;
+      background-image: url('kougeki_1.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      image-rendering: pixelated;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* タイトル画面 */
+    .title-screen {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #181825 0%, #282a36 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+    }
+
+    .title-logo {
+      font-size: 28px;
+      font-weight: 900;
+      color: #f1fa8c;
+      text-shadow: 2px 2px 0 #ff79c6, 4px 4px 0 #000;
+      margin-bottom: 30px;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+
+    .title-menu {
+      width: 100%;
+      max-width: 240px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .menu-btn {
+      width: 100%;
+      padding: 12px 0;
+      font-size: 15px;
+      font-weight: bold;
+      color: #ffffff;
+      background: #44475a;
+      border: 2px solid #bd93f9;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 4px 0 #282a36;
+      cursor: pointer;
+    }
+
+    .menu-btn.primary {
+      background: #ff79c6;
+      border-color: #f1fa8c;
+      box-shadow: 0 4px 0 #bd93f9;
+      color: #fff;
+    }
+
+    .menu-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #282a36;
+    }
+
+    /* オーバーレイ（クリア・ゲームオーバー） */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 50;
+    }
+
+    .clear-title {
+      font-size: 26px;
+      font-weight: bold;
+      color: #f1fa8c;
+      margin-bottom: 12px;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .gameover-title {
+      font-size: 30px;
+      font-weight: bold;
+      color: #ff5555;
+      margin-bottom: 6px;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .gameover-sub {
+      font-size: 13px;
+      color: #50fa7b;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .next-btn {
+      padding: 12px 30px;
+      font-size: 15px;
+      font-weight: bold;
+      color: #fff;
+      background-color: #ff79c6;
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 4px 0 #bd93f9;
+      cursor: pointer;
+    }
+    .next-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #bd93f9;
+    }
+
+    /* モーダル */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.88);
+      z-index: 120;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #f1fa8c;
+      margin-bottom: 12px;
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    .modal-content {
+      width: 100%;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 2px;
+    }
+
+    .close-btn {
+      margin-top: 10px;
+      padding: 10px 24px;
+      background-color: #6272a4;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      width: 100%;
+      max-width: 200px;
+    }
+
+    /* ステータスモーダル内部 */
+    .stat-modal-box {
+      width: 100%;
+      background-color: #282a36;
+      border: 2px solid #bd93f9;
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .stat-pts-info {
+      text-align: center;
+      font-size: 15px;
+      font-weight: bold;
+      color: #f1fa8c;
+      margin-bottom: 12px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background-color: #44475a;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .plus-btn {
+      background-color: #ff79c6;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      font-weight: bold;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .plus-btn:disabled {
+      background-color: #555;
+      opacity: 0.5;
+    }
+
+    .list-card {
+      background-color: #282a36;
+      border: 1px solid #6272a4;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-icon {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
+    .card-text {
+      font-size: 13px;
+    }
+
+    .dialog-box {
+      background-color: #44475a;
+      border: 2px solid #ff79c6;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 130;
+      width: 85%;
+      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.9);
+    }
+
+    .result-box {
+      border-color: #f1fa8c;
+    }
+
+    .rule-section {
+      font-size: 12px;
+      line-height: 1.6;
+      color: #f8f8f2;
+    }
+    .rule-section h4 {
+      margin: 10px 0 4px 0;
+      color: #50fa7b;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <audio id="bgm" src="BGM.mp3" loop></audio>
+
+  <div class="game-container">
+
+    <!-- タイトル画面 -->
+    <div class="title-screen" id="titleScreen">
+      <div class="title-logo">ステージ攻略RPG</div>
+      <div class="title-menu">
+        <button class="menu-btn primary" onclick="startNewGame()">はじめから</button>
+        <button class="menu-btn" onclick="continueGame()">つづきから</button>
+        <button class="menu-btn" onclick="openEnemyList()">敵キャラ一覧</button>
+        <button class="menu-btn" onclick="openRules()">ゲームルール</button>
+      </div>
+    </div>
+
+    <!-- 上部UI (ステータス表示エリア) -->
+    <div class="top-header">
+      <div class="stage-badge-container">
+        <div class="stage-badge" id="stageDisplay">STAGE 1</div>
+        <div style="font-size:11px; font-weight:bold; color:#8be9fd;" id="xpText">XP: 0/50</div>
+      </div>
+      
+      <div class="hp-bars-row">
+        <div class="hp-box">
+          <div class="hp-label">
+            <span id="playerLvlText">Lv.1</span>
+            <span>PLAYER</span>
+          </div>
+          <div class="hp-bar-container">
+            <div class="hp-bar-fill" id="playerHpFill"></div>
+          </div>
+        </div>
+
+        <div class="hp-box enemy-hp-box">
+          <div class="hp-label">
+            <span>ENEMY</span>
+            <span id="enemyNameLvlText">スライム Lv.1</span>
+          </div>
+          <div class="hp-bar-container">
+            <div class="hp-bar-fill" id="enemyHpFill"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- メインステージ画面 -->
+    <div class="stage" id="stage">
+      
+      <!-- クリア画面 -->
+      <div class="overlay" id="clearOverlay" style="display: none;">
+        <div class="clear-title" id="clearText">STAGE CLEAR!</div>
+        <button class="next-btn" onclick="nextStage()">次のステージへ</button>
+      </div>
+
+      <!-- ゲームオーバー画面 -->
+      <div class="overlay" id="gameOverOverlay" style="display: none;">
+        <div class="gameover-title">GAME OVER</div>
+        <div class="gameover-sub" id="gameOverSub">Lvはそのままで再挑戦！</div>
+        <button class="next-btn" onclick="restartFromStage1()">再挑戦する</button>
+      </div>
+
+      <!-- モーダル: バッグ -->
+      <div class="modal-overlay" id="bagModal" style="display: none;">
+        <div class="modal-title">🎒 アイテム一覧</div>
+        <div class="modal-content" id="itemList"></div>
+        <button class="close-btn" onclick="closeBag()">とじる</button>
+
+        <div class="dialog-box" id="confirmBox" style="display: none;">
+          <div id="confirmText" style="font-size: 13px; font-weight: bold;"></div>
+          <div style="margin-top:12px; display:flex; gap:10px; justify-content:center;">
+            <button class="next-btn" style="padding: 6px 18px;" onclick="useSelectedItem()">使う</button>
+            <button class="close-btn" style="margin-top:0; width:auto; padding: 6px 18px;" onclick="closeConfirm()">やめる</button>
+          </div>
+        </div>
+
+        <div class="dialog-box result-box" id="resultBox" style="display: none;">
+          <div id="resultTitle" style="font-size: 18px; font-weight: bold; margin-bottom:6px;"></div>
+          <div id="resultDesc" style="font-size: 12px; margin-bottom:12px;"></div>
+          <button class="next-btn" style="padding: 6px 20px;" onclick="closeResult()">OK</button>
+        </div>
+      </div>
+
+      <!-- モーダル: ステータス強化 -->
+      <div class="modal-overlay" id="statusModal" style="display: none;">
+        <div class="modal-title">📊 ステータス強化</div>
+        <div class="stat-modal-box">
+          <div class="stat-pts-info">振り分け可能pt: <span id="statPoints">0</span> pt</div>
+          <div class="stat-row">
+            <span>攻撃力 (ATK): <b id="statAtkVal">1</b></span>
+            <button class="plus-btn" id="btnPlusAtk" onclick="addPoint('atk')">+</button>
+          </div>
+          <div class="stat-row">
+            <span>最大HP: <b id="statHpVal">1</b></span>
+            <button class="plus-btn" id="btnPlusHp" onclick="addPoint('hp')">+</button>
+          </div>
+          <div class="stat-row">
+            <span>回避率: <b id="statEvasionVal">1</b>%</span>
+            <button class="plus-btn" id="btnPlusEvasion" onclick="addPoint('evasion')">+</button>
+          </div>
+        </div>
+        <button class="close-btn" onclick="closeStatus()">とじる</button>
+      </div>
+
+      <!-- モーダル: 敵キャラ一覧 -->
+      <div class="modal-overlay" id="enemyListModal" style="display: none;">
+        <div class="modal-title">👾 敵キャラ図鑑</div>
+        <div class="modal-content" id="enemyListContent"></div>
+        <button class="close-btn" onclick="closeEnemyList()">とじる</button>
+      </div>
+
+      <!-- モーダル: ゲームルール -->
+      <div class="modal-overlay" id="rulesModal" style="display: none;">
+        <div class="modal-title">📖 ゲームルール</div>
+        <div class="modal-content rule-section">
+          <h4>【基本操作】</h4>
+          ・左右矢印：移動 / 上矢印：ジャンプ<br>
+          ・右側の[⚔] ボタン：攻撃<br>
+          ・[🎒] ボタン：持ち物の使用<br>
+          ・[📊] ボタン：ステータス強化
+          <h4>【成長と強化】</h4>
+          ・敵を倒すと経験値(XP)を獲得しレベルアップ。<br>
+          ・Lvが上がると10ptのステータスptを獲得できます。
+          <h4>【巻物（ドロップアイテム）】</h4>
+          ・攻撃/HP/回復の巻物があり、使用すると確率で永続強化や回復が行われます。<br>
+          ・(25%), (50%), (100%)は使用時の成功確率です。
+        </div>
+        <button class="close-btn" onclick="closeRules()">とじる</button>
+      </div>
+
+      <!-- プレイヤー -->
+      <div class="character-container" id="player">
+        <img src="walk_1.png" alt="プレイヤー" class="character-img" id="playerImg">
+      </div>
+
+      <!-- 敵 -->
+      <div class="character-container" id="enemy">
+        <img src="teki_1.png" alt="敵" class="character-img" id="enemyImg">
+      </div>
+
+      <div class="ground"></div>
+    </div>
+
+    <!-- スマホ向けコントローラーパネル -->
+    <div class="mobile-controls">
+      <div class="dpad-container" id="dpadBox">
+        <button class="dpad-btn up" id="btnUp"></button>
+        <button class="dpad-btn left" id="btnLeft"></button>
+        <button class="dpad-btn right" id="btnRight"></button>
+      </div>
+
+      <div class="action-group">
+        <div class="sub-btns">
+          <div class="icon-btn bag" onclick="openBag()"></div>
+          <div class="icon-btn status" onclick="openStatus()">📊</div>
+        </div>
+        <div class="attack-btn" id="btnAttack"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const bgmAudio = document.getElementById('bgm');
+    let bgmStarted = false;
+
+    function playBGM() {
+      if (!bgmStarted) {
+        bgmAudio.volume = 0.5;
+        bgmAudio.play().then(() => {
+          bgmStarted = true;
+        }).catch(err => {});
+      }
+    }
+
+    window.addEventListener('pointerdown', playBGM, { once: true });
+    window.addEventListener('keydown', playBGM, { once: true });
+
+    const stageEl = document.getElementById('stage');
+    let stageBounds = { width: 360, height: 300 };
+
+    function updateBounds() {
+      stageBounds.width = stageEl.clientWidth || 360;
+      stageBounds.height = stageEl.clientHeight || 300;
+    }
+    window.addEventListener('resize', updateBounds);
+    setTimeout(updateBounds, 100);
+
+    const characterOffsets = { player: 24, teki_1: 20, teki_2: 30, teki_3: 30, teki_4: 30, bosu_1: 28, bosu_2: 24, bosu_3: 30 };
+    const walkImages = ['walk_1.png', 'walk_2.png', 'walk_3.png', 'walk_4.png', 'walk_5.png', 'walk_6.png', 'walk_7.png', 'walk_8.png'];
+    const attackImages = ['attack_1.png', 'attack_2.png', 'attack_3.png', 'attack_4.png', 'attack_5.png', 'attack_6.png'];
+
+    const normalEnemies = [
+      { id: 'teki_1', name: 'スライム', img: 'teki_1.png', baseHp: 40, baseAtk: 10, type: 'normal', desc: '近接攻撃をしてくる標準的な敵。', drop: { id: 'atk_25', name: '攻撃の巻物 (25%)', img: 'makimono_1.png', rate: 0.25, type: 'atk', successRate: 0.25 } },
+      { id: 'teki_2', name: 'ゴーレム', img: 'teki_2.png', baseHp: 65, baseAtk: 12, type: 'dash', desc: '素早く体当たり攻撃をしてくる。', drop: null },
+      { id: 'teki_3', name: 'ゴブリン', img: 'teki_3.png', baseHp: 45, baseAtk: 14, type: 'dash', desc: '高速で距離を詰めてくる難敵。', drop: { id: 'hp_25', name: 'HPの巻物 (25%)', img: 'makimono_2.png', rate: 0.25, type: 'hp', successRate: 0.25 } },
+      { id: 'teki_4', name: 'スケルトン', img: 'teki_4.png', baseHp: 50, baseAtk: 15, type: 'shoot', desc: '遠距離から骨を投げて攻撃してくる。', drop: { id: 'heal_25', name: '回復の巻物 (25%)', img: 'makimono_3.png', rate: 0.25, type: 'heal', successRate: 0.25 } }
+    ];
+
+    const bossEnemies = {
+      10: { id: 'bosu_1', name: 'キングゴブリン', img: 'bosu_1.png', baseHp: 250, baseAtk: 25, isBoss: true, desc: 'STAGE 10のボス。強力な衝撃波を放つ。', drop: { id: 'atk_50', name: '攻撃の巻物 (50%)', img: 'makimono_1.png', rate: 0.50, type: 'atk', successRate: 0.50 } },
+      20: { id: 'bosu_2', name: 'キングスライム', img: 'bosu_2.png', baseHp: 450, baseAtk: 35, isBoss: true, desc: 'STAGE 20のボス。巨大な巨体で押し潰す。', drop: { id: 'hp_50', name: 'HPの巻物 (50%)', img: 'makimono_2.png', rate: 0.50, type: 'hp', successRate: 0.50 } },
+      30: { id: 'bosu_3', name: 'ドラゴン', img: 'bosu_3.png', baseHp: 800, baseAtk: 50, isBoss: true, desc: 'STAGE 30のラストボス。圧倒的威力を誇る。', drop: { id: 'heal_100', name: '回復の巻物 (100%)', img: 'makimono_3.png', rate: 1.00, type: 'heal', successRate: 1.00 } }
+    };
+
+    let gameStarted = false;
+    let currentStage = 1;
+    let playerLvl = 1;
+    let playerXp = 0;
+    let nextLvlXp = 50;
+
+    let statPts = 0;
+    let statAtk = 1;
+    let statHp = 1;
+    let statEvasion = 1;
+
+    let inventory = [];
+
+    let playerMaxHp = 100;
+    let playerHp = 100;
+    let playerAtk = 15;
+
+    let playerX = 40;
+    let playerY = 0;
+    let velocityY = 0;
+    let isJumping = false;
+    let isAttacking = false;
+    let facingRight = true;
+    let hasHitEnemyThisAttack = false;
+
+    let isPaused = false;
+
+    const moveSpeed = 3.2;
+    const jumpPower = 9.0;
+    const gravity = 0.55;
+
+    let walkFrame = 0;
+    let animTimer = 0;
+    const animSpeed = 6;
+
+    let currentEnemyData = {};
+    let enemyX = 260;
+    let enemyY = 0;
+    let enemyMaxHp = 50;
+    let enemyHp = 50;
+    let enemyAtk = 10;
+    let enemyFacingRight = false;
+    let enemyIsAttacking = false;
+    let enemyAttackCooldown = false;
+    let isBossAngry = false;
+
+    let bullets = [];
+    let shockwaves = [];
+    let selectedItemIndex = -1;
+
+    const keys = { left: false, right: false };
+
+    const titleScreen = document.getElementById('titleScreen');
+    const playerEl = document.getElementById('player');
+    const playerImg = document.getElementById('playerImg');
+    const playerHpFill = document.getElementById('playerHpFill');
+    const playerLvlText = document.getElementById('playerLvlText');
+    const xpText = document.getElementById('xpText');
+
+    const enemyEl = document.getElementById('enemy');
+    const enemyImg = document.getElementById('enemyImg');
+    const enemyHpFill = document.getElementById('enemyHpFill');
+    const enemyNameLvlText = document.getElementById('enemyNameLvlText');
+
+    const stageDisplay = document.getElementById('stageDisplay');
+    const clearOverlay = document.getElementById('clearOverlay');
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+    const gameOverSub = document.getElementById('gameOverSub');
+
+    const dpadBox = document.getElementById('dpadBox');
+    const btnAttack = document.getElementById('btnAttack');
+
+    function saveGame() {
+      const data = {
+        currentStage, playerLvl, playerXp, nextLvlXp,
+        statPts, statAtk, statHp, statEvasion, inventory
+      };
+      localStorage.setItem('rpg_save_data', JSON.stringify(data));
+    }
+
+    function loadGame() {
+      const saved = localStorage.getItem('rpg_save_data');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          currentStage = data.currentStage || 1;
+          playerLvl = data.playerLvl || 1;
+          playerXp = data.playerXp || 0;
+          nextLvlXp = data.nextLvlXp || 50;
+          statPts = data.statPts || 0;
+          statAtk = data.statAtk || 1;
+          statHp = data.statHp || 1;
+          statEvasion = data.statEvasion || 1;
+          inventory = data.inventory || [];
+        } catch(e) { console.error(e); }
+      }
+      recalcPlayerStats();
+    }
+
+    function startNewGame() {
+      localStorage.removeItem('rpg_save_data');
+      currentStage = 1;
+      playerLvl = 1;
+      playerXp = 0;
+      nextLvlXp = 50;
+      statPts = 0;
+      statAtk = 1;
+      statHp = 1;
+      statEvasion = 1;
+      inventory = [];
+      
+      recalcPlayerStats();
+      playerHp = playerMaxHp;
+      
+      titleScreen.style.display = 'none';
+      gameStarted = true;
+      initStage(1);
+    }
+
+    function continueGame() {
+      loadGame();
+      playerHp = playerMaxHp;
+      titleScreen.style.display = 'none';
+      gameStarted = true;
+      initStage(currentStage);
+    }
+
+    function recalcPlayerStats() {
+      playerMaxHp = 100 + (playerLvl - 1) * 15 + (statHp - 1) * 10;
+      playerAtk = 15 + (playerLvl - 1) * 3 + (statAtk - 1) * 2;
+    }
+
+    function initStage(stageNum) {
+      updateBounds();
+      currentStage = stageNum;
+      stageDisplay.textContent = `STAGE ${currentStage}`;
+      
+      playerX = 30;
+      playerY = 0;
+      enemyX = Math.max(180, stageBounds.width - 100);
+      enemyY = 0;
+      isBossAngry = false;
+      isPaused = false;
+      enemyImg.classList.remove('boss-angry');
+      
+      bullets.forEach(b => b.el.remove()); bullets = [];
+      shockwaves.forEach(s => s.el.remove()); shockwaves = [];
+
+      clearOverlay.style.display = 'none';
+      gameOverOverlay.style.display = 'none';
+      enemyEl.style.display = 'block';
+
+      if (bossEnemies[currentStage]) {
+        currentEnemyData = bossEnemies[currentStage];
+        stageDisplay.textContent = `STAGE ${currentStage} [BOSS]`;
+      } else {
+        const randIndex = Math.floor(Math.random() * normalEnemies.length);
+        currentEnemyData = normalEnemies[randIndex];
+      }
+
+      const enemyLvl = currentStage;
+      enemyMaxHp = currentEnemyData.baseHp + (enemyLvl - 1) * 15;
+      enemyHp = enemyMaxHp;
+      enemyAtk = currentEnemyData.baseAtk + (enemyLvl - 1) * 2;
+
+      enemyImg.src = currentEnemyData.img;
+      enemyNameLvlText.textContent = `${currentEnemyData.name} Lv.${enemyLvl}`;
+
+      recalcPlayerStats();
+      updateUI();
+      saveGame();
+
+      if (bgmStarted && bgmAudio.paused) {
+        bgmAudio.play();
+      }
+    }
+
+    function updateUI() {
+      playerHpFill.style.width = Math.max(0, (playerHp / playerMaxHp * 100)) + '%';
+      enemyHpFill.style.width = Math.max(0, (enemyHp / enemyMaxHp * 100)) + '%';
+      playerLvlText.textContent = `Lv.${playerLvl}`;
+      xpText.textContent = `XP: ${playerXp}/${nextLvlXp}`;
+
+      document.getElementById('statPoints').textContent = statPts;
+      document.getElementById('statAtkVal').textContent = statAtk;
+      document.getElementById('statHpVal').textContent = statHp;
+      document.getElementById('statEvasionVal').textContent = statEvasion;
+
+      const disablePlus = statPts <= 0;
+      document.getElementById('btnPlusAtk').disabled = disablePlus;
+      document.getElementById('btnPlusHp').disabled = disablePlus;
+      document.getElementById('btnPlusEvasion').disabled = disablePlus;
+    }
+
+    function addPoint(type) {
+      if (statPts <= 0) return;
+      statPts--;
+      if (type === 'atk') statAtk++;
+      if (type === 'hp') {
+        statHp++;
+        recalcPlayerStats();
+        playerHp += 10;
+      }
+      if (type === 'evasion') statEvasion = Math.min(80, statEvasion + 1);
+
+      recalcPlayerStats();
+      updateUI();
+      saveGame();
+    }
+
+    function updateRender() {
+      const maxX = stageBounds.width - 70;
+      playerX = Math.max(10, Math.min(maxX, playerX));
+
+      const basePlayerBottom = characterOffsets.player || 24;
+      playerEl.style.left = playerX + 'px';
+      playerEl.style.bottom = (basePlayerBottom + playerY) + 'px';
+      playerImg.style.transform = facingRight ? 'scaleX(1)' : 'scaleX(-1)';
+
+      const baseEnemyBottom = characterOffsets[currentEnemyData.id] || 20;
+      enemyEl.style.left = enemyX + 'px';
+      enemyEl.style.bottom = (baseEnemyBottom + enemyY) + 'px';
+      enemyImg.style.transform = enemyFacingRight ? 'scaleX(-1)' : 'scaleX(1)';
+    }
+
+    function gameLoop() {
+      if (gameStarted && !isPaused) {
+        let isMoving = false;
+
+        if (!isAttacking && playerHp > 0 && enemyHp > 0) {
+          if (keys.right) { playerX += moveSpeed; facingRight = true; isMoving = true; }
+          if (keys.left) { playerX -= moveSpeed; facingRight = false; isMoving = true; }
+
+          if (isMoving && !isJumping) {
+            animTimer++;
+            if (animTimer >= animSpeed) {
+              animTimer = 0;
+              walkFrame = (walkFrame + 1) % walkImages.length;
+              playerImg.src = walkImages[walkFrame];
+            }
+          } else if (!isMoving && !isJumping) {
+            walkFrame = 0;
+            playerImg.src = walkImages[0];
+          }
+        }
+
+        if (isJumping) {
+          playerY += velocityY;
+          velocityY -= gravity;
+          if (playerY <= 0) {
+            playerY = 0;
+            velocityY = 0;
+            isJumping = false;
+            if (!isAttacking) playerImg.src = walkImages[0];
+          }
+        }
+
+        updateEnemyAI();
+        updateBulletsAndShockwaves();
+        checkHit();
+        updateRender();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function updateEnemyAI() {
+      if (enemyHp <= 0 || playerHp <= 0) return;
+
+      if (currentEnemyData.isBoss && enemyHp <= enemyMaxHp * 0.5 && !isBossAngry) {
+        isBossAngry = true;
+        enemyImg.classList.add('boss-angry');
+        showPopText(enemyEl, 'ANGER!!', 'damage-pop');
+      }
+
+      const distance = Math.abs(playerX - enemyX);
+      enemyFacingRight = (playerX > enemyX);
+      const speed = isBossAngry ? 1.8 : 0.9;
+
+      if (currentEnemyData.type === 'shoot') {
+        if (distance > 140 && !enemyIsAttacking && !enemyAttackCooldown) shootBullet();
+        else if (!enemyIsAttacking) enemyX += (enemyX > playerX ? -speed : speed);
+      } else {
+        if (distance <= 60) {
+          if (!enemyIsAttacking && !enemyAttackCooldown) {
+            if (currentEnemyData.isBoss) {
+              if (Math.random() < 0.5) bossShockwaveAttack();
+              else enemyNormalAttack();
+            } else if (currentEnemyData.type === 'dash') {
+              enemyDashAttack();
+            } else {
+              enemyNormalAttack();
+            }
+          }
+        } else if (!enemyIsAttacking) {
+          enemyX += (enemyX > playerX ? -speed : speed);
+        }
+      }
+    }
+
+    function enemyNormalAttack() {
+      enemyIsAttacking = true;
+      let jumpStep = 0;
+      const cooldown = isBossAngry ? 300 : 700;
+
+      const anim = setInterval(() => {
+        if (isPaused) return;
+        jumpStep++;
+        if (jumpStep <= 4) enemyY += 6;
+        else if (jumpStep <= 8) enemyY -= 6;
+        else {
+          clearInterval(anim);
+          enemyY = 0;
+          if (Math.abs(playerX - enemyX) <= 65 && Math.abs(playerY - enemyY) < 35) {
+            takeDamage('player', enemyAtk);
+          }
+          enemyIsAttacking = false;
+          enemyAttackCooldown = true;
+          setTimeout(() => { enemyAttackCooldown = false; }, cooldown);
+        }
+      }, 20);
+    }
+
+    function enemyDashAttack() {
+      enemyIsAttacking = true;
+      const dashDirection = enemyX > playerX ? -1 : 1;
+      let step = 0;
+
+      const anim = setInterval(() => {
+        if (isPaused) return;
+        step++;
+        if (step <= 10) enemyX -= dashDirection * 1.2;
+        else if (step <= 25) {
+          enemyX += dashDirection * 6.5;
+          if (Math.abs(playerX - enemyX) <= 45 && Math.abs(playerY - enemyY) < 35) {
+            takeDamage('player', Math.floor(enemyAtk * 1.3));
+          }
+        } else {
+          clearInterval(anim);
+          enemyIsAttacking = false;
+          enemyAttackCooldown = true;
+          setTimeout(() => { enemyAttackCooldown = false; }, 900);
+        }
+      }, 20);
+    }
+
+    function shootBullet() {
+      enemyIsAttacking = true;
+      const bulletEl = document.createElement('div');
+      bulletEl.className = 'bullet';
+      bulletEl.innerHTML = `<img src="sukeruton_1.png" alt="弾">`;
+      stageEl.appendChild(bulletEl);
+
+      const isToRight = enemyX < playerX;
+      bullets.push({ el: bulletEl, x: enemyX + (isToRight ? 50 : -15), y: 48, vx: isToRight ? 4.8 : -4.8 });
+      enemyAttackCooldown = true;
+      setTimeout(() => { enemyIsAttacking = false; enemyAttackCooldown = false; }, 1200);
+    }
+
+    function bossShockwaveAttack() {
+      enemyIsAttacking = true;
+      let jumpStep = 0;
+
+      const anim = setInterval(() => {
+        if (isPaused) return;
+        jumpStep++;
+        if (jumpStep <= 6) enemyY += 10;
+        else if (jumpStep <= 12) enemyY -= 10;
+        else {
+          clearInterval(anim);
+          enemyY = 0;
+          createShockwave(enemyX + 25, 5);
+          createShockwave(enemyX + 25, -5);
+          enemyIsAttacking = false;
+          enemyAttackCooldown = true;
+          setTimeout(() => { enemyAttackCooldown = false; }, isBossAngry ? 400 : 1000);
+        }
+      }, 20);
+    }
+
+    function createShockwave(startX, vx) {
+      const el = document.createElement('div');
+      el.className = 'shockwave';
+      stageEl.appendChild(el);
+      shockwaves.push({ el, x: startX, width: 16, vx });
+    }
+
+    function updateBulletsAndShockwaves() {
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx;
+        b.el.style.left = b.x + 'px';
+        b.el.style.bottom = b.y + 'px';
+
+        if (Math.abs(b.x - (playerX + 25)) < 25 && playerY < 35) {
+          takeDamage('player', enemyAtk);
+          b.el.remove(); bullets.splice(i, 1); continue;
+        }
+        if (b.x < -30 || b.x > stageBounds.width + 30) { b.el.remove(); bullets.splice(i, 1); }
+      }
+
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const s = shockwaves[i];
+        s.x += s.vx;
+        s.width += 1.8;
+        s.el.style.left = Math.min(s.x, s.x + s.vx) + 'px';
+        s.el.style.width = s.width + 'px';
+
+        if (Math.abs(s.x - (playerX + 25)) < s.width && playerY < 20) {
+          takeDamage('player', Math.floor(enemyAtk * 1.2));
+          s.el.remove(); shockwaves.splice(i, 1); continue;
+        }
+        if (s.x < -40 || s.x > stageBounds.width + 40) { s.el.remove(); shockwaves.splice(i, 1); }
+      }
+    }
+
+    function checkHit() {
+      if (isAttacking && !hasHitEnemyThisAttack && enemyHp > 0) {
+        const distanceX = Math.abs(playerX - enemyX);
+        const distanceY = Math.abs(playerY - enemyY);
+        const isFacingEnemy = (facingRight && enemyX > playerX) || (!facingRight && enemyX < playerX);
+
+        if (distanceX <= 68 && distanceY < 35 && isFacingEnemy) {
+          hasHitEnemyThisAttack = true;
+          takeDamage('enemy', playerAtk);
+        }
+      }
+    }
+
+    function takeDamage(target, amount) {
+      if (target === 'enemy') {
+        enemyHp = Math.max(0, enemyHp - amount);
+        showPopText(enemyEl, amount, 'damage-pop');
+        if (enemyHp <= 0) {
+          enemyEl.style.display = 'none';
+          checkDropItem();
+          gainXp(currentStage * 20);
+          setTimeout(() => { clearOverlay.style.display = 'flex'; }, 500);
+        }
+      } else if (target === 'player') {
+        if (Math.random() * 100 < statEvasion) {
+          showPopText(playerEl, 'MISS!', 'damage-pop miss-pop');
+          return;
+        }
+
+        playerHp = Math.max(0, playerHp - amount);
+        showPopText(playerEl, amount, 'damage-pop');
+        
+        if (playerHp <= 0) {
+          setTimeout(() => {
+            gameOverSub.textContent = `現在の Lv.${playerLvl} のまま再挑戦できます！`;
+            gameOverOverlay.style.display = 'flex';
+          }, 500);
+        }
+      }
+      updateUI();
+    }
+
+    function checkDropItem() {
+      const dropInfo = currentEnemyData.drop;
+      if (!dropInfo) return;
+
+      if (Math.random() <= dropInfo.rate) {
+        const dropEl = document.createElement('div');
+        dropEl.className = 'dropped-item';
+        dropEl.style.left = enemyX + 'px';
+        dropEl.innerHTML = `<img src="${dropInfo.img}" alt="item">`;
+        stageEl.appendChild(dropEl);
+
+        setTimeout(() => {
+          dropEl.remove();
+          inventory.push({ ...dropInfo });
+          showPopText(playerEl, `GET: ${dropInfo.name}!`, 'damage-pop get-pop');
+          saveGame();
+        }, 700);
+      }
+    }
+
+    function gainXp(amount) {
+      playerXp += amount;
+      if (playerXp >= nextLvlXp) {
+        playerXp -= nextLvlXp;
+        playerLvl++;
+        nextLvlXp = Math.floor(nextLvlXp * 1.4);
+        statPts += 10;
+        recalcPlayerStats();
+        playerHp = playerMaxHp;
+        showPopText(playerEl, 'LEVEL UP! (+10pt)', 'damage-pop lvl-pop');
+      }
+      updateUI();
+      saveGame();
+    }
+
+    function openBag() {
+      if (!gameStarted) return;
+      isPaused = true;
+      bgmAudio.volume = 0.15;
+      renderBagList();
+      document.getElementById('bagModal').style.display = 'flex';
+    }
+
+    function closeBag() {
+      document.getElementById('bagModal').style.display = 'none';
+      closeConfirm();
+      closeResult();
+      bgmAudio.volume = 0.5;
+      isPaused = false;
+    }
+
+    function openStatus() {
+      if (!gameStarted) return;
+      isPaused = true;
+      bgmAudio.volume = 0.15;
+      updateUI();
+      document.getElementById('statusModal').style.display = 'flex';
+    }
+
+    function closeStatus() {
+      document.getElementById('statusModal').style.display = 'none';
+      bgmAudio.volume = 0.5;
+      isPaused = false;
+    }
+
+    function openEnemyList() {
+      renderEnemyList();
+      document.getElementById('enemyListModal').style.display = 'flex';
+    }
+
+    function closeEnemyList() {
+      document.getElementById('enemyListModal').style.display = 'none';
+    }
+
+    function openRules() {
+      document.getElementById('rulesModal').style.display = 'flex';
+    }
+
+    function closeRules() {
+      document.getElementById('rulesModal').style.display = 'none';
+    }
+
+    function renderEnemyList() {
+      const container = document.getElementById('enemyListContent');
+      container.innerHTML = '';
+
+      const allEnemies = [...normalEnemies, ...Object.values(bossEnemies)];
+      allEnemies.forEach(e => {
+        const card = document.createElement('div');
+        card.className = 'list-card';
+        card.innerHTML = `
+          <div class="card-info">
+            <img src="${e.img}" class="card-icon">
+            <div class="card-text">
+              <div style="font-weight:bold; color:#f1fa8c;">${e.name} ${e.isBoss ? '[BOSS]' : ''}</div>
+              <div style="font-size:11px; color:#aaa;">${e.desc}</div>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderBagList() {
+      const listEl = document.getElementById('itemList');
+      listEl.innerHTML = '';
+
+      if (inventory.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center; color:#aaa; font-size:12px; margin-top:20px;">アイテムを持っていません</div>';
+        return;
+      }
+
+      inventory.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'list-card';
+        card.style.cursor = 'pointer';
+        card.onclick = () => showConfirm(index);
+        card.innerHTML = `
+          <div class="card-info">
+            <img src="${item.img}" class="card-icon">
+            <span class="card-text" style="font-weight:bold;">${item.name}</span>
+          </div>
+          <span style="font-size:12px; color:#ff79c6; font-weight:bold;">つかう</span>
+        `;
+        listEl.appendChild(card);
+      });
+    }
+
+    function showConfirm(index) {
+      selectedItemIndex = index;
+      const item = inventory[index];
+      document.getElementById('confirmText').textContent = `「${item.name}」を使用しますか？`;
+      document.getElementById('confirmBox').style.display = 'block';
+    }
+
+    function closeConfirm() {
+      selectedItemIndex = -1;
+      document.getElementById('confirmBox').style.display = 'none';
+    }
+
+    function useSelectedItem() {
+      if (selectedItemIndex < 0 || selectedItemIndex >= inventory.length) return;
+      const item = inventory[selectedItemIndex];
+      const isSuccess = Math.random() <= item.successRate;
+
+      let titleText = "";
+      let descText = "";
+      let isSuccessFlag = false;
+
+      if (item.type === 'atk') {
+        if (isSuccess) {
+          statAtk += 5;
+          recalcPlayerStats();
+          titleText = "✨ 成功！ ✨";
+          descText = "攻撃力が 5 上がった！";
+          isSuccessFlag = true;
+          showPopText(playerEl, 'ATK +5 UP!', 'damage-pop success-pop');
+        } else {
+          titleText = "💀 失敗… 💀";
+          descText = "何も起きずに巻物は消えてしまった…";
+          showPopText(playerEl, '失敗…', 'damage-pop fail-pop');
+        }
+      } else if (item.type === 'hp') {
+        if (isSuccess) {
+          statHp += 5;
+          recalcPlayerStats();
+          playerHp += 25;
+          titleText = "✨ 成功！ ✨";
+          descText = "最大HPが 5 上がり、HPも回復した！";
+          isSuccessFlag = true;
+          showPopText(playerEl, 'MAX HP +5 UP!', 'damage-pop success-pop');
+        } else {
+          titleText = "💀 失敗… 💀";
+          descText = "何も起きずに巻物は消えてしまった…";
+          showPopText(playerEl, '失敗…', 'damage-pop fail-pop');
+        }
+      } else if (item.type === 'heal') {
+        if (isSuccess) {
+          const healAmount = Math.floor(playerMaxHp / 2);
+          playerHp = Math.min(playerMaxHp, playerHp + healAmount);
+          titleText = "✨ 成功！ ✨";
+          descText = `HPが ${healAmount} 回復した！`;
+          isSuccessFlag = true;
+          showPopText(playerEl, `HP +${healAmount} 回復!`, 'damage-pop success-pop');
+        } else {
+          titleText = "💀 失敗… 💀";
+          descText = "何も起きずに巻物は消えてしまった…";
+          showPopText(playerEl, '失敗…', 'damage-pop fail-pop');
+        }
+      }
+
+      inventory.splice(selectedItemIndex, 1);
+      closeConfirm();
+      renderBagList();
+      updateUI();
+      saveGame();
+
+      showResultDialog(titleText, descText, isSuccessFlag);
+    }
+
+    function showResultDialog(title, desc, isSuccess) {
+      const resultBox = document.getElementById('resultBox');
+      const titleEl = document.getElementById('resultTitle');
+      const descEl = document.getElementById('resultDesc');
+
+      titleEl.textContent = title;
+      titleEl.style.color = isSuccess ? '#50fa7b' : '#ff5555';
+      descEl.textContent = desc;
+
+      resultBox.style.display = 'block';
+    }
+
+    function closeResult() {
+      document.getElementById('resultBox').style.display = 'none';
+    }
+
+    function nextStage() { initStage(currentStage + 1); }
+
+    function restartFromStage1() {
+      playerHp = playerMaxHp;
+      initStage(1);
+    }
+
+    function showPopText(targetEl, text, className) {
+      const pop = document.createElement('div');
+      pop.className = className;
+      pop.textContent = text;
+      targetEl.appendChild(pop);
+      setTimeout(() => { pop.remove(); }, 800);
+    }
+
+    function jump() {
+      if (isJumping || isAttacking || playerHp <= 0 || isPaused || !gameStarted) return;
+      isJumping = true;
+      velocityY = jumpPower;
+    }
+
+    function attack() {
+      if (isAttacking || playerHp <= 0 || isPaused || !gameStarted) return;
+      isAttacking = true;
+      hasHitEnemyThisAttack = false;
+      let attackFrame = 0;
+      const attackInterval = setInterval(() => {
+        if (isPaused) return;
+        playerImg.src = attackImages[attackFrame];
+        attackFrame++;
+        if (attackFrame >= attackImages.length) {
+          clearInterval(attackInterval);
+          isAttacking = false;
+          playerImg.src = walkImages[0];
+        }
+      }, 70);
+    }
+
+    // タッチ制御
+    const btnUp = document.getElementById('btnUp');
+    const btnLeft = document.getElementById('btnLeft');
+    const btnRight = document.getElementById('btnRight');
+
+    function setDpadImage(imgName) { dpadBox.style.backgroundImage = `url('${imgName}')`; }
+
+    const startRight = (e) => { e.preventDefault(); if(!isPaused && gameStarted) keys.right = true; setDpadImage('yazirusi_2.png'); };
+    const endRight = (e) => { e.preventDefault(); keys.right = false; setDpadImage('yazirusi_1.png'); };
+    btnRight.addEventListener('touchstart', startRight); btnRight.addEventListener('touchend', endRight);
+    btnRight.addEventListener('mousedown', startRight); btnRight.addEventListener('mouseup', endRight); btnRight.addEventListener('mouseleave', endRight);
+
+    const startLeft = (e) => { e.preventDefault(); if(!isPaused && gameStarted) keys.left = true; setDpadImage('yazirusi_3.png'); };
+    const endLeft = (e) => { e.preventDefault(); keys.left = false; setDpadImage('yazirusi_1.png'); };
+    btnLeft.addEventListener('touchstart', startLeft); btnLeft.addEventListener('touchend', endLeft);
+    btnLeft.addEventListener('mousedown', startLeft); btnLeft.addEventListener('mouseup', endLeft); btnLeft.addEventListener('mouseleave', endLeft);
+
+    const startUp = (e) => { e.preventDefault(); jump(); setDpadImage('yazirusi_4.png'); };
+    const endUp = (e) => { e.preventDefault(); setDpadImage('yazirusi_1.png'); };
+    btnUp.addEventListener('touchstart', startUp); btnUp.addEventListener('touchend', endUp);
+    btnUp.addEventListener('mousedown', startUp); btnUp.addEventListener('mouseup', endUp); btnUp.addEventListener('mouseleave', endUp);
+
+    const startAttack = (e) => { e.preventDefault(); attack(); btnAttack.style.backgroundImage = "url('kougeki_2.png')"; };
+    const endAttack = (e) => { e.preventDefault(); btnAttack.style.backgroundImage = "url('kougeki_1.png')"; };
+    btnAttack.addEventListener('touchstart', startAttack); btnAttack.addEventListener('touchend', endAttack);
+    btnAttack.addEventListener('mousedown', startAttack); btnAttack.addEventListener('mouseup', endAttack); btnAttack.addEventListener('mouseleave', endAttack);
+
+    window.addEventListener('keydown', (e) => {
+      if (isPaused || !gameStarted) return;
+      if (e.key === 'ArrowRight') { keys.right = true; setDpadImage('yazirusi_2.png'); }
+      if (e.key === 'ArrowLeft') { keys.left = true; setDpadImage('yazirusi_3.png'); }
+      if (e.key === 'ArrowUp' || e.key === ' ') { e.preventDefault(); jump(); setDpadImage('yazirusi_4.png'); }
+      if (e.key === 'z' || e.key === 'Z') { attack(); btnAttack.style.backgroundImage = "url('kougeki_2.png')"; }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === ' ') {
+        keys.right = false; keys.left = false; setDpadImage('yazirusi_1.png');
+      }
+      if (e.key === 'z' || e.key === 'Z') { btnAttack.style.backgroundImage = "url('kougeki_1.png')"; }
+    });
+
+    // プリロード
+    const preloadList = [
+      ...walkImages, ...attackImages,
+      'haikei_1.png', 'teki_1.png', 'teki_2.png', 'teki_3.png', 'teki_4.png',
+      'bosu_1.png', 'bosu_2.png', 'bosu_3.png',
+      'yazirusi_1.png', 'yazirusi_2.png', 'yazirusi_3.png', 'yazirusi_4.png',
+      'kougeki_1.png', 'kougeki_2.png', 'sukeruton_1.png', 'bag.png',
+      'makimono_1.png', 'makimono_2.png', 'makimono_3.png'
+    ];
+    preloadList.forEach((src) => { const img = new Image(); img.src = src; });
+
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
