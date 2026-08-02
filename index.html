@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ステージ攻略RPG</title>
+  <title>叩いて進め（叩進）</title>
   <style>
     * {
       user-select: none;
@@ -27,7 +27,6 @@
       align-items: center;
     }
 
-    /* ゲーム全体をスマホ画面一杯（縦横比維持・レスポンシブ）に配置 */
     .game-container {
       position: relative;
       width: 100%;
@@ -42,7 +41,6 @@
       box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
     }
 
-    /* 上部ステータスヘッダー */
     .top-header {
       width: 100%;
       padding: 8px 12px;
@@ -113,7 +111,6 @@
       background-color: #ff5555;
     }
 
-    /* ゲームプレイ画面 (ステージ) */
     .stage {
       flex: 1;
       width: 100%;
@@ -124,7 +121,6 @@
       overflow: hidden;
     }
 
-    /* 地面 */
     .ground {
       position: absolute;
       bottom: 0;
@@ -136,7 +132,6 @@
       image-rendering: pixelated;
     }
 
-    /* キャラクター */
     .character-container {
       position: absolute;
       bottom: 24px;
@@ -156,7 +151,47 @@
       filter: drop-shadow(0 0 10px #ff0000) sepia(0.8) hue-rotate(-50deg) saturate(3);
     }
 
-    /* 弾・衝撃波 */
+    .boss-warning-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      animation: flashBg 0.4s infinite alternate;
+    }
+
+    @keyframes flashBg {
+      0% { background-color: rgba(255, 0, 0, 0.15); }
+      100% { background-color: rgba(255, 0, 0, 0.4); }
+    }
+
+    .boss-warning-banner {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      border-top: 4px solid #FFD700;
+      border-bottom: 4px solid #FFD700;
+      padding: 12px 0;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+    }
+
+    .boss-warning-text {
+      font-size: 28px;
+      font-weight: 900;
+      color: #ff5555;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px #ff0000, 2px 2px 0 #000;
+      animation: blinkText 0.3s infinite alternate;
+    }
+
+    @keyframes blinkText {
+      0% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+
     .bullet {
       position: absolute;
       width: 28px;
@@ -206,7 +241,6 @@
       100% { transform: translateY(0); opacity: 1; }
     }
 
-    /* ポップアップ演出 */
     .damage-pop {
       position: absolute;
       top: -12px;
@@ -223,16 +257,17 @@
     }
     .lvl-pop { color: #50fa7b; font-size: 16px; }
     .miss-pop { color: #8be9fd; font-size: 16px; }
+    .poison-pop { color: #bd93f9; font-size: 16px; }
     .get-pop { color: #f1fa8c; font-size: 14px; }
     .success-pop { color: #f1fa8c; font-size: 20px; text-shadow: 0 0 10px #ff79c6; }
     .fail-pop { color: #ff5555; font-size: 18px; }
+    .revive-pop { color: #ff79c6; font-size: 22px; text-shadow: 0 0 12px #ffb86c; }
 
     @keyframes popUp {
       0% { opacity: 1; transform: translate(-50%, 0); }
       100% { opacity: 0; transform: translate(-50%, -25px); }
     }
 
-    /* スマホ向け操作パネル */
     .mobile-controls {
       width: 100%;
       padding: 10px 12px 14px 12px;
@@ -244,10 +279,9 @@
       z-index: 10;
     }
 
-    /* 十字キーエリア */
     .dpad-container {
-      width: 130px;
-      height: 130px;
+      width: 150px;
+      height: 150px;
       position: relative;
       background-image: url('yazirusi_1.png');
       background-size: contain;
@@ -262,12 +296,12 @@
       background: transparent;
       border: none;
       outline: none;
+      transform: translateY(0) !important;
     }
-    .dpad-btn.up { top: 0; left: 32px; width: 66px; height: 45px; }
-    .dpad-btn.left { bottom: 5px; left: 0; width: 50px; height: 55px; }
-    .dpad-btn.right { bottom: 5px; right: 0; width: 50px; height: 55px; }
+    .dpad-btn.up { top: 0; left: 37px; width: 76px; height: 50px; }
+    .dpad-btn.left { bottom: 5px; left: 0; width: 58px; height: 65px; }
+    .dpad-btn.right { bottom: 5px; right: 0; width: 58px; height: 65px; }
 
-    /* アクションボタン群 */
     .action-group {
       display: flex;
       align-items: center;
@@ -275,14 +309,14 @@
     }
 
     .sub-btns {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
     }
 
     .icon-btn {
-      width: 48px;
-      height: 48px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       border: 2px solid #bd93f9;
       background-color: #282a36;
@@ -290,7 +324,7 @@
       align-items: center;
       justify-content: center;
       box-shadow: 0 3px 0 #6272a4;
-      font-size: 20px;
+      font-size: 18px;
       cursor: pointer;
     }
     .icon-btn:active {
@@ -306,8 +340,8 @@
     }
 
     .attack-btn {
-      width: 80px;
-      height: 80px;
+      width: 85px;
+      height: 85px;
       background-image: url('kougeki_1.png');
       background-size: contain;
       background-repeat: no-repeat;
@@ -315,9 +349,9 @@
       image-rendering: pixelated;
       cursor: pointer;
       flex-shrink: 0;
+      transform: translateY(0) !important;
     }
 
-    /* タイトル画面 */
     .title-screen {
       position: absolute;
       inset: 0;
@@ -335,7 +369,7 @@
       font-weight: 900;
       color: #f1fa8c;
       text-shadow: 2px 2px 0 #ff79c6, 4px 4px 0 #000;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
       text-align: center;
       letter-spacing: 1px;
     }
@@ -345,13 +379,13 @@
       max-width: 240px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .menu-btn {
       width: 100%;
-      padding: 12px 0;
-      font-size: 15px;
+      padding: 10px 0;
+      font-size: 14px;
       font-weight: bold;
       color: #ffffff;
       background: #44475a;
@@ -369,29 +403,35 @@
       color: #fff;
     }
 
+    .menu-btn.event {
+      background: linear-gradient(45deg, #ff5555, #ffb86c);
+      border-color: #ff79c6;
+      color: #fff;
+      box-shadow: 0 4px 0 #bd93f9;
+    }
+
     .menu-btn:active {
       transform: translateY(2px);
       box-shadow: 0 2px 0 #282a36;
     }
 
-    /* オーバーレイ（クリア・ゲームオーバー） */
     .overlay {
       position: absolute;
       inset: 0;
-      background-color: rgba(0, 0, 0, 0.8);
+      background-color: rgba(0, 0, 0, 0.85);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 20px;
       z-index: 50;
+      gap: 12px;
     }
 
     .clear-title {
       font-size: 26px;
       font-weight: bold;
       color: #f1fa8c;
-      margin-bottom: 12px;
       text-shadow: 2px 2px 0 #000;
     }
 
@@ -399,20 +439,26 @@
       font-size: 30px;
       font-weight: bold;
       color: #ff5555;
-      margin-bottom: 6px;
       text-shadow: 2px 2px 0 #000;
     }
 
     .gameover-sub {
       font-size: 13px;
       color: #50fa7b;
-      margin-bottom: 20px;
       text-align: center;
     }
 
+    .btn-group-vertical {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 200px;
+    }
+
     .next-btn {
-      padding: 12px 30px;
-      font-size: 15px;
+      padding: 12px 20px;
+      font-size: 14px;
       font-weight: bold;
       color: #fff;
       background-color: #ff79c6;
@@ -420,13 +466,17 @@
       border-radius: 10px;
       box-shadow: 0 4px 0 #bd93f9;
       cursor: pointer;
+      text-align: center;
+    }
+    .next-btn.secondary {
+      background-color: #6272a4;
+      box-shadow: 0 4px 0 #44475a;
     }
     .next-btn:active {
       transform: translateY(2px);
       box-shadow: 0 2px 0 #bd93f9;
     }
 
-    /* モーダル */
     .modal-overlay {
       position: absolute;
       inset: 0;
@@ -471,7 +521,6 @@
       max-width: 200px;
     }
 
-    /* ステータスモーダル内部 */
     .stat-modal-box {
       width: 100%;
       background-color: #282a36;
@@ -523,6 +572,22 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+    }
+
+    .mission-card {
+      border: 1px solid #bd93f9;
+      transition: all 0.2s ease;
+    }
+    .mission-card.claimable {
+      border: 2px solid #FFD700;
+      background-color: #383a59;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+      cursor: pointer;
+    }
+    .mission-card.completed {
+      background-color: #1a1b26;
+      border-color: #44475a;
+      opacity: 0.6;
     }
 
     .card-info {
@@ -581,10 +646,11 @@
 
     <!-- タイトル画面 -->
     <div class="title-screen" id="titleScreen">
-      <div class="title-logo">ステージ攻略RPG</div>
+      <div class="title-logo">叩いて進め（叩進）</div>
       <div class="title-menu">
         <button class="menu-btn primary" onclick="startNewGame()">はじめから</button>
         <button class="menu-btn" onclick="continueGame()">つづきから</button>
+        <button class="menu-btn event" onclick="startEventStage()">🔥 イベントステージ</button>
         <button class="menu-btn" onclick="openEnemyList()">敵キャラ一覧</button>
         <button class="menu-btn" onclick="openRules()">ゲームルール</button>
       </div>
@@ -623,17 +689,30 @@
     <!-- メインステージ画面 -->
     <div class="stage" id="stage">
       
+      <!-- ボス警告カットイン演出 -->
+      <div class="boss-warning-overlay" id="bossWarningOverlay" style="display: none;">
+        <div class="boss-warning-banner">
+          <div class="boss-warning-text" id="bossWarningText">⚠️ BOSS WARNING ⚠️</div>
+        </div>
+      </div>
+
       <!-- クリア画面 -->
       <div class="overlay" id="clearOverlay" style="display: none;">
         <div class="clear-title" id="clearText">STAGE CLEAR!</div>
-        <button class="next-btn" onclick="nextStage()">次のステージへ</button>
+        <div class="btn-group-vertical">
+          <button class="next-btn" id="nextStageBtn" onclick="nextStage()">次のステージへ</button>
+          <button class="next-btn secondary" onclick="returnToTitle()">タイトルへ戻る</button>
+        </div>
       </div>
 
       <!-- ゲームオーバー画面 -->
       <div class="overlay" id="gameOverOverlay" style="display: none;">
         <div class="gameover-title">GAME OVER</div>
         <div class="gameover-sub" id="gameOverSub">Lvはそのままで再挑戦！</div>
-        <button class="next-btn" onclick="restartFromStage1()">再挑戦する</button>
+        <div class="btn-group-vertical">
+          <button class="next-btn" onclick="restartFromStage1()">再挑戦する</button>
+          <button class="next-btn secondary" onclick="returnToTitle()">タイトルへ戻る</button>
+        </div>
       </div>
 
       <!-- モーダル: バッグ -->
@@ -655,6 +734,13 @@
           <div id="resultDesc" style="font-size: 12px; margin-bottom:12px;"></div>
           <button class="next-btn" style="padding: 6px 20px;" onclick="closeResult()">OK</button>
         </div>
+      </div>
+
+      <!-- モーダル: 実績（ミッション） -->
+      <div class="modal-overlay" id="missionModal" style="display: none;">
+        <div class="modal-title">📜 ミッション一覧</div>
+        <div class="modal-content" id="missionListContent"></div>
+        <button class="close-btn" onclick="closeMission()">とじる</button>
       </div>
 
       <!-- モーダル: ステータス強化 -->
@@ -693,13 +779,11 @@
           ・左右矢印：移動 / 上矢印：ジャンプ<br>
           ・右側の[⚔] ボタン：攻撃<br>
           ・[🎒] ボタン：持ち物の使用<br>
-          ・[📊] ボタン：ステータス強化
-          <h4>【成長と強化】</h4>
-          ・敵を倒すと経験値(XP)を獲得しレベルアップ。<br>
-          ・Lvが上がると10ptのステータスptを獲得できます。
-          <h4>【巻物（ドロップアイテム）】</h4>
-          ・攻撃/HP/回復の巻物があり、使用すると確率で永続強化や回復が行われます。<br>
-          ・(25%), (50%), (100%)は使用時の成功確率です。
+          ・[📊] ボタン：ステータス強化<br>
+          ・[📜] ボタン：ミッション確認
+          <h4>【不死鳥の羽】</h4>
+          ・イベントボスのフェニックスを倒すと獲得。<br>
+          ・所持しているとHPが0になった際に<b>自動で発動し、HP50%で一度だけ復活</b>します！
         </div>
         <button class="close-btn" onclick="closeRules()">とじる</button>
       </div>
@@ -729,6 +813,7 @@
         <div class="sub-btns">
           <div class="icon-btn bag" onclick="openBag()"></div>
           <div class="icon-btn status" onclick="openStatus()">📊</div>
+          <div class="icon-btn mission" onclick="openMission()">📜</div>
         </div>
         <div class="attack-btn" id="btnAttack"></div>
       </div>
@@ -743,9 +828,7 @@
     function playBGM() {
       if (!bgmStarted) {
         bgmAudio.volume = 0.5;
-        bgmAudio.play().then(() => {
-          bgmStarted = true;
-        }).catch(err => {});
+        bgmAudio.play().then(() => { bgmStarted = true; }).catch(err => {});
       }
     }
 
@@ -762,7 +845,13 @@
     window.addEventListener('resize', updateBounds);
     setTimeout(updateBounds, 100);
 
-    const characterOffsets = { player: 24, teki_1: 20, teki_2: 30, teki_3: 30, teki_4: 30, bosu_1: 28, bosu_2: 24, bosu_3: 30 };
+    const characterOffsets = {
+      player: 24, teki_1: 20, teki_2: 30, teki_3: 30, teki_4: 30,
+      teki_5: 25, teki_6: 35, teki_7: 30, teki_8: 25,
+      bosu_1: 28, bosu_2: 24, bosu_3: 30, bosu_4: 35, bosu_5: 30, bosu_6: 35,
+      fenikkusu: 35, skeleton_minion: 20
+    };
+
     const walkImages = ['walk_1.png', 'walk_2.png', 'walk_3.png', 'walk_4.png', 'walk_5.png', 'walk_6.png', 'walk_7.png', 'walk_8.png'];
     const attackImages = ['attack_1.png', 'attack_2.png', 'attack_3.png', 'attack_4.png', 'attack_5.png', 'attack_6.png'];
 
@@ -773,13 +862,73 @@
       { id: 'teki_4', name: 'スケルトン', img: 'teki_4.png', baseHp: 50, baseAtk: 15, type: 'shoot', desc: '遠距離から骨を投げて攻撃してくる。', drop: { id: 'heal_25', name: '回復の巻物 (25%)', img: 'makimono_3.png', rate: 0.25, type: 'heal', successRate: 0.25 } }
     ];
 
+    const advancedEnemies = [
+      { id: 'teki_5', name: 'ウルフ', img: 'teki_5.png', baseHp: 120, baseAtk: 22, type: 'wolf_tossin', desc: '素早くプレイヤーに突進攻撃を仕掛ける。', drop: null },
+      { id: 'teki_6', name: 'ハチ', img: 'teki_6.png', baseHp: 90, baseAtk: 18, type: 'bee_needle', desc: '針を飛ばし、当たると3秒間の毒を与える。', drop: { id: 'bee_scroll', name: '攻撃の巻物(ハチ限定)', img: 'makimono_1.png', rate: 0.20, type: 'bee_bonus' } },
+      { id: 'teki_7', name: 'ゴースト', img: 'teki_7.png', baseHp: 110, baseAtk: 20, type: 'ghost_float', desc: '定期的に空中へ浮遊する。ジャンプ攻撃が必要。', drop: { id: 'hp_25', name: 'HPの巻物 (25%)', img: 'makimono_2.png', rate: 0.25, type: 'hp', successRate: 0.25 } },
+      { id: 'teki_8', name: '魔法使い', img: 'teki_8.png', baseHp: 130, baseAtk: 25, type: 'wizard_fire', desc: '強力な炎の弾を放ってくる。', drop: { id: 'heal_25', name: '回復の巻物 (25%)', img: 'makimono_3.png', rate: 0.25, type: 'heal', successRate: 0.25 } }
+    ];
+
     const bossEnemies = {
       10: { id: 'bosu_1', name: 'キングゴブリン', img: 'bosu_1.png', baseHp: 250, baseAtk: 25, isBoss: true, desc: 'STAGE 10のボス。強力な衝撃波を放つ。', drop: { id: 'atk_50', name: '攻撃の巻物 (50%)', img: 'makimono_1.png', rate: 0.50, type: 'atk', successRate: 0.50 } },
       20: { id: 'bosu_2', name: 'キングスライム', img: 'bosu_2.png', baseHp: 450, baseAtk: 35, isBoss: true, desc: 'STAGE 20のボス。巨大な巨体で押し潰す。', drop: { id: 'hp_50', name: 'HPの巻物 (50%)', img: 'makimono_2.png', rate: 0.50, type: 'hp', successRate: 0.50 } },
-      30: { id: 'bosu_3', name: 'ドラゴン', img: 'bosu_3.png', baseHp: 800, baseAtk: 50, isBoss: true, desc: 'STAGE 30のラストボス。圧倒的威力を誇る。', drop: { id: 'heal_100', name: '回復の巻物 (100%)', img: 'makimono_3.png', rate: 1.00, type: 'heal', successRate: 1.00 } }
+      30: { id: 'bosu_3', name: 'ドラゴン', img: 'bosu_3.png', baseHp: 800, baseAtk: 50, isBoss: true, desc: 'STAGE 30のボス。圧倒的威力を誇る。', drop: { id: 'heal_100', name: '回復の巻物 (100%)', img: 'makimono_3.png', rate: 1.00, type: 'heal', successRate: 1.00 } },
+      40: { id: 'bosu_4', name: '女王ハチ', img: 'bosu_4.png', baseHp: 1200, baseAtk: 35, isBoss: true, type: 'queen_bee', desc: 'STAGE 40のボス。強烈な毒針をランダム連射する。', drop: { id: 'atk_50', name: '攻撃の巻物 (50%)', img: 'makimono_1.png', rate: 0.50, type: 'atk', successRate: 0.50 } },
+      50: { id: 'bosu_5', name: '死神', img: 'bosu_5.png', baseHp: 1800, baseAtk: 45, isBoss: true, type: 'reaper', desc: 'STAGE 50のボス。3秒毎にスケルトンを召喚する。', drop: { id: 'hp_50', name: 'HPの巻物 (50%)', img: 'makimono_2.png', rate: 0.50, type: 'hp', successRate: 0.50 } },
+      60: { id: 'bosu_6', name: '魔王', img: 'bosu_6.png', baseHp: 2600, baseAtk: 60, isBoss: true, type: 'demon_king', desc: 'STAGE 60の最終ボス。炎攻撃とゴースト召喚を行う。', drop: { id: 'heal_100', name: '回復の巻物 (100%)', img: 'makimono_3.png', rate: 1.00, type: 'heal', successRate: 1.00 } }
     };
 
+    /* イベント限定ボス: フェニックス */
+    const phoenixEnemy = {
+      id: 'fenikkusu',
+      name: 'フェニックス',
+      img: 'fenikkusu.png',
+      baseHp: 3500,
+      baseAtk: 80,
+      isBoss: true,
+      type: 'phoenix',
+      desc: 'イベント限定の伝説の不死鳥。魔王を超える力を持つ。',
+      drop: { id: 'hane', name: '不死鳥の羽', img: 'hane.png', rate: 1.00, type: 'revive_feather' }
+    };
+
+    let defaultMissions = [
+      { id: 1, title: "冒険の始まり", desc: "敵を1体撃破する", type: "defeat", target: 1, status: "UNCOMPLETED" },
+      { id: 2, title: "駆け出しハンター", desc: "敵を5体撃破する", type: "defeat", target: 5, status: "UNCOMPLETED" },
+      { id: 3, title: "熟練の戦士", desc: "敵を15体撃破する", type: "defeat", target: 15, status: "UNCOMPLETED" },
+      { id: 4, title: "百戦錬磨", desc: "敵を30体撃破する", type: "defeat", target: 30, status: "UNCOMPLETED" },
+      { id: 5, title: "モンスターハンター", desc: "敵を50体撃破する", type: "defeat", target: 50, status: "UNCOMPLETED" },
+      { id: 6, title: "レベルアッパー 1", desc: "レベル2に到達する", type: "level", target: 2, status: "UNCOMPLETED" },
+      { id: 7, title: "レベルアッパー 2", desc: "レベル5に到達する", type: "level", target: 5, status: "UNCOMPLETED" },
+      { id: 8, title: "レベルアッパー 3", desc: "レベル10に到達する", type: "level", target: 10, status: "UNCOMPLETED" },
+      { id: 9, title: "レベルアッパー 4", desc: "レベル15に到達する", type: "level", target: 15, status: "UNCOMPLETED" },
+      { id: 10, title: "レベルアッパー 5", desc: "レベル20に到達する", type: "level", target: 20, status: "UNCOMPLETED" },
+      { id: 11, title: "ステージ突破 1", desc: "STAGE 5に到達する", type: "stage", target: 5, status: "UNCOMPLETED" },
+      { id: 12, title: "ゴブリン退治", desc: "STAGE 10のボスを破る", type: "stage", target: 10, status: "UNCOMPLETED" },
+      { id: 13, title: "ステージ突破 2", desc: "STAGE 15に到達する", type: "stage", target: 15, status: "UNCOMPLETED" },
+      { id: 14, title: "スライム退治", desc: "STAGE 20のボスを破る", type: "stage", target: 20, status: "UNCOMPLETED" },
+      { id: 15, title: "ステージ突破 3", desc: "STAGE 25に到達する", type: "stage", target: 25, status: "UNCOMPLETED" },
+      { id: 16, title: "ドラゴン討伐", desc: "STAGE 30のボスを破る", type: "stage", target: 30, status: "UNCOMPLETED" },
+      { id: 17, title: "ステージ突破 4", desc: "STAGE 35に到達する", type: "stage", target: 35, status: "UNCOMPLETED" },
+      { id: 18, title: "女王ハチ撃破", desc: "STAGE 40のボスを破る", type: "stage", target: 40, status: "UNCOMPLETED" },
+      { id: 19, title: "ステージ突破 5", desc: "STAGE 45に到達する", type: "stage", target: 45, status: "UNCOMPLETED" },
+      { id: 20, title: "死神退治", desc: "STAGE 50のボスを破る", type: "stage", target: 50, status: "UNCOMPLETED" },
+      { id: 21, title: "魔王城へ", desc: "STAGE 55に到達する", type: "stage", target: 55, status: "UNCOMPLETED" },
+      { id: 22, title: "世界を救いし者", desc: "STAGE 60の魔王を破る", type: "stage", target: 60, status: "UNCOMPLETED" },
+      { id: 23, title: "攻撃強化 1", desc: "攻撃力pt(ATK)を3まで振る", type: "statAtk", target: 3, status: "UNCOMPLETED" },
+      { id: 24, title: "攻撃強化 2", desc: "攻撃力pt(ATK)を10まで振る", type: "statAtk", target: 10, status: "UNCOMPLETED" },
+      { id: 25, title: "体力強化 1", desc: "HP ptを3まで振る", type: "statHp", target: 3, status: "UNCOMPLETED" },
+      { id: 26, title: "体力強化 2", desc: "HP ptを10まで振る", type: "statHp", target: 10, status: "UNCOMPLETED" },
+      { id: 27, title: "回避マスター 1", desc: "回避率ptを3まで振る", type: "statEvasion", target: 3, status: "UNCOMPLETED" },
+      { id: 28, title: "回避マスター 2", desc: "回避率ptを10まで振る", type: "statEvasion", target: 10, status: "UNCOMPLETED" },
+      { id: 29, title: "大乱闘", desc: "敵を100体撃破する", type: "defeat", target: 100, status: "UNCOMPLETED" },
+      { id: 30, title: "伝説の勇者", desc: "レベル30に到達する", type: "level", target: 30, status: "UNCOMPLETED" }
+    ];
+
+    let missions = JSON.parse(JSON.stringify(defaultMissions));
+    let totalDefeats = 0;
+
     let gameStarted = false;
+    let isEventStageMode = false; // イベントステージ判定フラグ
     let currentStage = 1;
     let playerLvl = 1;
     let playerXp = 0;
@@ -804,6 +953,9 @@
     let facingRight = true;
     let hasHitEnemyThisAttack = false;
 
+    let poisonTimer = 0;
+    let poisonDmg = 0;
+
     let isPaused = false;
 
     const moveSpeed = 3.2;
@@ -824,6 +976,10 @@
     let enemyIsAttacking = false;
     let enemyAttackCooldown = false;
     let isBossAngry = false;
+
+    let ghostFloatTimer = 0;
+    let enemyActionTimer = 0;
+    let minionEnemy = null; 
 
     let bullets = [];
     let shockwaves = [];
@@ -847,6 +1003,9 @@
     const clearOverlay = document.getElementById('clearOverlay');
     const gameOverOverlay = document.getElementById('gameOverOverlay');
     const gameOverSub = document.getElementById('gameOverSub');
+    const bossWarningOverlay = document.getElementById('bossWarningOverlay');
+    const bossWarningText = document.getElementById('bossWarningText');
+    const nextStageBtn = document.getElementById('nextStageBtn');
 
     const dpadBox = document.getElementById('dpadBox');
     const btnAttack = document.getElementById('btnAttack');
@@ -854,7 +1013,8 @@
     function saveGame() {
       const data = {
         currentStage, playerLvl, playerXp, nextLvlXp,
-        statPts, statAtk, statHp, statEvasion, inventory
+        statPts, statAtk, statHp, statEvasion, inventory,
+        totalDefeats, missions
       };
       localStorage.setItem('rpg_save_data', JSON.stringify(data));
     }
@@ -873,9 +1033,14 @@
           statHp = data.statHp || 1;
           statEvasion = data.statEvasion || 1;
           inventory = data.inventory || [];
+          totalDefeats = data.totalDefeats || 0;
+          if (data.missions && data.missions.length === defaultMissions.length) {
+            missions = data.missions;
+          }
         } catch(e) { console.error(e); }
       }
       recalcPlayerStats();
+      checkMissionsProgress();
     }
 
     function startNewGame() {
@@ -889,7 +1054,10 @@
       statHp = 1;
       statEvasion = 1;
       inventory = [];
+      totalDefeats = 0;
+      missions = JSON.parse(JSON.stringify(defaultMissions));
       
+      isEventStageMode = false;
       recalcPlayerStats();
       playerHp = playerMaxHp;
       
@@ -900,10 +1068,31 @@
 
     function continueGame() {
       loadGame();
+      isEventStageMode = false;
       playerHp = playerMaxHp;
       titleScreen.style.display = 'none';
       gameStarted = true;
       initStage(currentStage);
+    }
+
+    /* 🔥 イベントステージ開始 */
+    function startEventStage() {
+      loadGame();
+      isEventStageMode = true;
+      playerHp = playerMaxHp;
+      titleScreen.style.display = 'none';
+      gameStarted = true;
+      initStage('EVENT');
+    }
+
+    /* タイトルへ戻る処理 */
+    function returnToTitle() {
+      saveGame();
+      isPaused = false;
+      gameStarted = false;
+      clearOverlay.style.display = 'none';
+      gameOverOverlay.style.display = 'none';
+      titleScreen.style.display = 'flex';
     }
 
     function recalcPlayerStats() {
@@ -911,17 +1100,36 @@
       playerAtk = 15 + (playerLvl - 1) * 3 + (statAtk - 1) * 2;
     }
 
+    function checkMissionsProgress() {
+      missions.forEach(m => {
+        if (m.status === "COMPLETED") return;
+
+        let achieved = false;
+        if (m.type === "defeat" && totalDefeats >= m.target) achieved = true;
+        if (m.type === "level" && playerLvl >= m.target) achieved = true;
+        if (m.type === "stage" && currentStage >= m.target) achieved = true;
+        if (m.type === "statAtk" && statAtk >= m.target) achieved = true;
+        if (m.type === "statHp" && statHp >= m.target) achieved = true;
+        if (m.type === "statEvasion" && statEvasion >= m.target) achieved = true;
+
+        if (achieved) {
+          m.status = "CLAIMABLE";
+        }
+      });
+    }
+
     function initStage(stageNum) {
       updateBounds();
-      currentStage = stageNum;
-      stageDisplay.textContent = `STAGE ${currentStage}`;
-      
       playerX = 30;
       playerY = 0;
       enemyX = Math.max(180, stageBounds.width - 100);
       enemyY = 0;
       isBossAngry = false;
       isPaused = false;
+      ghostFloatTimer = 0;
+      enemyActionTimer = 0;
+      removeMinion();
+
       enemyImg.classList.remove('boss-angry');
       
       bullets.forEach(b => b.el.remove()); bullets = [];
@@ -929,31 +1137,58 @@
 
       clearOverlay.style.display = 'none';
       gameOverOverlay.style.display = 'none';
+      bossWarningOverlay.style.display = 'none';
       enemyEl.style.display = 'block';
 
-      if (bossEnemies[currentStage]) {
-        currentEnemyData = bossEnemies[currentStage];
-        stageDisplay.textContent = `STAGE ${currentStage} [BOSS]`;
+      if (isEventStageMode) {
+        currentEnemyData = phoenixEnemy;
+        stageDisplay.textContent = `EVENT STAGE`;
+        nextStageBtn.style.display = 'none'; // イベント時は「次のステージ」ボタン非表示
+        showBossWarning('🔥 PHOENIX APPEAR 🔥');
       } else {
-        const randIndex = Math.floor(Math.random() * normalEnemies.length);
-        currentEnemyData = normalEnemies[randIndex];
+        currentStage = stageNum;
+        stageDisplay.textContent = `STAGE ${currentStage}`;
+        nextStageBtn.style.display = 'block';
+
+        if (bossEnemies[currentStage]) {
+          currentEnemyData = bossEnemies[currentStage];
+          stageDisplay.textContent = `STAGE ${currentStage} [BOSS]`;
+          showBossWarning('⚠️ BOSS WARNING ⚠️');
+        } else {
+          if (currentStage >= 31) {
+            const randIndex = Math.floor(Math.random() * advancedEnemies.length);
+            currentEnemyData = advancedEnemies[randIndex];
+          } else {
+            const randIndex = Math.floor(Math.random() * normalEnemies.length);
+            currentEnemyData = normalEnemies[randIndex];
+          }
+        }
       }
 
-      const enemyLvl = currentStage;
-      enemyMaxHp = currentEnemyData.baseHp + (enemyLvl - 1) * 15;
+      const enemyLvl = isEventStageMode ? 99 : currentStage;
+      enemyMaxHp = currentEnemyData.baseHp + (enemyLvl - 1) * 18;
       enemyHp = enemyMaxHp;
       enemyAtk = currentEnemyData.baseAtk + (enemyLvl - 1) * 2;
 
       enemyImg.src = currentEnemyData.img;
-      enemyNameLvlText.textContent = `${currentEnemyData.name} Lv.${enemyLvl}`;
+      enemyNameLvlText.textContent = `${currentEnemyData.name} ${isEventStageMode ? '[EVENT]' : 'Lv.' + enemyLvl}`;
 
       recalcPlayerStats();
+      checkMissionsProgress();
       updateUI();
       saveGame();
 
       if (bgmStarted && bgmAudio.paused) {
         bgmAudio.play();
       }
+    }
+
+    function showBossWarning(msg = '⚠️ BOSS WARNING ⚠️') {
+      bossWarningText.textContent = msg;
+      bossWarningOverlay.style.display = 'flex';
+      setTimeout(() => {
+        bossWarningOverlay.style.display = 'none';
+      }, 1800);
     }
 
     function updateUI() {
@@ -985,6 +1220,7 @@
       if (type === 'evasion') statEvasion = Math.min(80, statEvasion + 1);
 
       recalcPlayerStats();
+      checkMissionsProgress();
       updateUI();
       saveGame();
     }
@@ -1002,6 +1238,11 @@
       enemyEl.style.left = enemyX + 'px';
       enemyEl.style.bottom = (baseEnemyBottom + enemyY) + 'px';
       enemyImg.style.transform = enemyFacingRight ? 'scaleX(-1)' : 'scaleX(1)';
+
+      if (minionEnemy) {
+        minionEnemy.el.style.left = minionEnemy.x + 'px';
+        minionEnemy.el.style.bottom = (20 + minionEnemy.y) + 'px';
+      }
     }
 
     function gameLoop() {
@@ -1036,13 +1277,25 @@
           }
         }
 
+        updatePoisonStatus();
         updateEnemyAI();
+        updateMinionAI();
         updateBulletsAndShockwaves();
         checkHit();
         updateRender();
       }
 
       requestAnimationFrame(gameLoop);
+    }
+
+    function updatePoisonStatus() {
+      if (poisonTimer > 0) {
+        poisonTimer--;
+        if (poisonTimer % 60 === 0) {
+          takeDamage('player', poisonDmg);
+          showPopText(playerEl, `毒! -${poisonDmg}`, 'damage-pop poison-pop');
+        }
+      }
     }
 
     function updateEnemyAI() {
@@ -1058,13 +1311,81 @@
       enemyFacingRight = (playerX > enemyX);
       const speed = isBossAngry ? 1.8 : 0.9;
 
+      /* 🔥 フェニックスのAIアルゴリズム */
+      if (currentEnemyData.type === 'phoenix') {
+        if (!enemyIsAttacking && !enemyAttackCooldown) {
+          if (distance > 110) {
+            // 遠距離攻撃: 魔法使いの炎攻撃
+            shootBullet('mahoutukai_1.png', 7, { damageBonus: 1.3 });
+          } else {
+            // 近距離攻撃: ゴーレムの強烈な突進
+            enemyDashAttack(2.0, 8.5);
+          }
+        }
+        return;
+      }
+
+      if (currentEnemyData.type === 'ghost_float') {
+        ghostFloatTimer++;
+        if (ghostFloatTimer % 120 < 60) enemyY = 65;
+        else enemyY = 0;
+      }
+
+      if (currentEnemyData.type === 'wolf_tossin') {
+        if (distance <= 110 && !enemyIsAttacking && !enemyAttackCooldown) {
+          enemyDashAttack(2.0, 8.0);
+          return;
+        }
+      }
+
+      if (currentEnemyData.type === 'bee_needle') {
+        if (distance > 80 && !enemyIsAttacking && !enemyAttackCooldown) {
+          shootBullet('hati_1.png', 5, { isPoison: true, duration: 180, dmg: 2 });
+          return;
+        }
+      }
+
+      if (currentEnemyData.type === 'wizard_fire') {
+        if (distance > 90 && !enemyIsAttacking && !enemyAttackCooldown) {
+          shootBullet('mahoutukai_1.png', 6, { damageBonus: 1.2 });
+          return;
+        }
+      }
+
+      if (currentEnemyData.type === 'queen_bee') {
+        enemyActionTimer++;
+        if (enemyActionTimer >= (isBossAngry ? 45 : 75)) {
+          enemyActionTimer = 0;
+          shootBullet('hati_1.png', 6, { isPoison: true, duration: 300, dmg: 5 }, (Math.random() * 20 - 10));
+        }
+      }
+
+      if (currentEnemyData.type === 'reaper') {
+        enemyActionTimer++;
+        if (enemyActionTimer >= 180) {
+          enemyActionTimer = 0;
+          spawnMinion('skeleton_minion', 'teki_4.png');
+        }
+      }
+
+      if (currentEnemyData.type === 'demon_king') {
+        enemyActionTimer++;
+        if (enemyActionTimer % 90 === 0) {
+          shootBullet('mahoutukai_1.png', 7, { damageBonus: 1.3 });
+        }
+        if (enemyActionTimer >= 180) {
+          enemyActionTimer = 0;
+          spawnMinion('ghost_minion', 'teki_7.png');
+        }
+      }
+
       if (currentEnemyData.type === 'shoot') {
-        if (distance > 140 && !enemyIsAttacking && !enemyAttackCooldown) shootBullet();
+        if (distance > 140 && !enemyIsAttacking && !enemyAttackCooldown) shootBullet('sukeruton_1.png', 4.8);
         else if (!enemyIsAttacking) enemyX += (enemyX > playerX ? -speed : speed);
       } else {
         if (distance <= 60) {
           if (!enemyIsAttacking && !enemyAttackCooldown) {
-            if (currentEnemyData.isBoss) {
+            if (currentEnemyData.isBoss && !['queen_bee','reaper','demon_king'].includes(currentEnemyData.type)) {
               if (Math.random() < 0.5) bossShockwaveAttack();
               else enemyNormalAttack();
             } else if (currentEnemyData.type === 'dash') {
@@ -1076,6 +1397,44 @@
         } else if (!enemyIsAttacking) {
           enemyX += (enemyX > playerX ? -speed : speed);
         }
+      }
+    }
+
+    function spawnMinion(type, img) {
+      if (minionEnemy) return;
+      const minionEl = document.createElement('div');
+      minionEl.className = 'character-container';
+      minionEl.innerHTML = `<img src="${img}" class="character-img">`;
+      stageEl.appendChild(minionEl);
+
+      minionEnemy = {
+        type: type,
+        el: minionEl,
+        x: enemyX - 40,
+        y: 0,
+        hp: 40,
+        maxHp: 40,
+        atk: Math.floor(enemyAtk * 0.6)
+      };
+      showPopText(enemyEl, '召喚！', 'damage-pop');
+    }
+
+    function removeMinion() {
+      if (minionEnemy) {
+        minionEnemy.el.remove();
+        minionEnemy = null;
+      }
+    }
+
+    function updateMinionAI() {
+      if (!minionEnemy) return;
+
+      const dir = playerX < minionEnemy.x ? -1 : 1;
+      minionEnemy.x += dir * 1.2;
+
+      if (Math.abs(playerX - minionEnemy.x) < 35 && Math.abs(playerY - minionEnemy.y) < 30) {
+        takeDamage('player', minionEnemy.atk);
+        minionEnemy.x -= dir * 30;
       }
     }
 
@@ -1102,7 +1461,7 @@
       }, 20);
     }
 
-    function enemyDashAttack() {
+    function enemyDashAttack(prepMult = 1.2, dashMult = 6.5) {
       enemyIsAttacking = true;
       const dashDirection = enemyX > playerX ? -1 : 1;
       let step = 0;
@@ -1110,9 +1469,9 @@
       const anim = setInterval(() => {
         if (isPaused) return;
         step++;
-        if (step <= 10) enemyX -= dashDirection * 1.2;
+        if (step <= 10) enemyX -= dashDirection * prepMult;
         else if (step <= 25) {
-          enemyX += dashDirection * 6.5;
+          enemyX += dashDirection * dashMult;
           if (Math.abs(playerX - enemyX) <= 45 && Math.abs(playerY - enemyY) < 35) {
             takeDamage('player', Math.floor(enemyAtk * 1.3));
           }
@@ -1120,22 +1479,28 @@
           clearInterval(anim);
           enemyIsAttacking = false;
           enemyAttackCooldown = true;
-          setTimeout(() => { enemyAttackCooldown = false; }, 900);
+          setTimeout(() => { enemyAttackCooldown = false; }, 800);
         }
       }, 20);
     }
 
-    function shootBullet() {
+    function shootBullet(imgSrc = 'sukeruton_1.png', speed = 5, effect = null, offsetY = 0) {
       enemyIsAttacking = true;
       const bulletEl = document.createElement('div');
       bulletEl.className = 'bullet';
-      bulletEl.innerHTML = `<img src="sukeruton_1.png" alt="弾">`;
+      bulletEl.innerHTML = `<img src="${imgSrc}" alt="弾">`;
       stageEl.appendChild(bulletEl);
 
       const isToRight = enemyX < playerX;
-      bullets.push({ el: bulletEl, x: enemyX + (isToRight ? 50 : -15), y: 48, vx: isToRight ? 4.8 : -4.8 });
+      bullets.push({ 
+        el: bulletEl, 
+        x: enemyX + (isToRight ? 50 : -15), 
+        y: 48 + offsetY, 
+        vx: isToRight ? speed : -speed,
+        effect: effect
+      });
       enemyAttackCooldown = true;
-      setTimeout(() => { enemyIsAttacking = false; enemyAttackCooldown = false; }, 1200);
+      setTimeout(() => { enemyIsAttacking = false; enemyAttackCooldown = false; }, 800);
     }
 
     function bossShockwaveAttack() {
@@ -1173,8 +1538,16 @@
         b.el.style.left = b.x + 'px';
         b.el.style.bottom = b.y + 'px';
 
-        if (Math.abs(b.x - (playerX + 25)) < 25 && playerY < 35) {
-          takeDamage('player', enemyAtk);
+        if (Math.abs(b.x - (playerX + 25)) < 25 && Math.abs(playerY - (b.y - 48)) < 30) {
+          let dmg = enemyAtk;
+          if (b.effect && b.effect.damageBonus) dmg = Math.floor(dmg * b.effect.damageBonus);
+          takeDamage('player', dmg);
+
+          if (b.effect && b.effect.isPoison) {
+            poisonTimer = b.effect.duration;
+            poisonDmg = b.effect.dmg;
+          }
+
           b.el.remove(); bullets.splice(i, 1); continue;
         }
         if (b.x < -30 || b.x > stageBounds.width + 30) { b.el.remove(); bullets.splice(i, 1); }
@@ -1196,14 +1569,27 @@
     }
 
     function checkHit() {
-      if (isAttacking && !hasHitEnemyThisAttack && enemyHp > 0) {
-        const distanceX = Math.abs(playerX - enemyX);
-        const distanceY = Math.abs(playerY - enemyY);
+      if (isAttacking && !hasHitEnemyThisAttack) {
         const isFacingEnemy = (facingRight && enemyX > playerX) || (!facingRight && enemyX < playerX);
 
-        if (distanceX <= 68 && distanceY < 35 && isFacingEnemy) {
-          hasHitEnemyThisAttack = true;
-          takeDamage('enemy', playerAtk);
+        if (minionEnemy) {
+          if (Math.abs(playerX - minionEnemy.x) <= 68 && Math.abs(playerY - minionEnemy.y) < 35) {
+            hasHitEnemyThisAttack = true;
+            minionEnemy.hp -= playerAtk;
+            showPopText(minionEnemy.el, playerAtk, 'damage-pop');
+            if (minionEnemy.hp <= 0) removeMinion();
+            return;
+          }
+        }
+
+        if (enemyHp > 0) {
+          const distanceX = Math.abs(playerX - enemyX);
+          const distanceY = Math.abs(playerY - enemyY);
+
+          if (distanceX <= 68 && distanceY < 35 && isFacingEnemy) {
+            hasHitEnemyThisAttack = true;
+            takeDamage('enemy', playerAtk);
+          }
         }
       }
     }
@@ -1214,8 +1600,11 @@
         showPopText(enemyEl, amount, 'damage-pop');
         if (enemyHp <= 0) {
           enemyEl.style.display = 'none';
+          removeMinion();
+          totalDefeats++;
           checkDropItem();
-          gainXp(currentStage * 20);
+          gainXp(isEventStageMode ? 200 : currentStage * 20);
+          checkMissionsProgress();
           setTimeout(() => { clearOverlay.style.display = 'flex'; }, 500);
         }
       } else if (target === 'player') {
@@ -1228,6 +1617,17 @@
         showPopText(playerEl, amount, 'damage-pop');
         
         if (playerHp <= 0) {
+          /* 🔥 不死鳥の羽によるオート復活処理 */
+          const featherIndex = inventory.findIndex(item => item.type === 'revive_feather');
+          if (featherIndex !== -1) {
+            inventory.splice(featherIndex, 1); // 羽を消費
+            playerHp = Math.floor(playerMaxHp * 0.5); // HP50%で復活
+            showPopText(playerEl, '✨ 不死鳥の復活！ ✨', 'damage-pop revive-pop');
+            saveGame();
+            updateUI();
+            return;
+          }
+
           setTimeout(() => {
             gameOverSub.textContent = `現在の Lv.${playerLvl} のまま再挑戦できます！`;
             gameOverOverlay.style.display = 'flex';
@@ -1242,6 +1642,13 @@
       if (!dropInfo) return;
 
       if (Math.random() <= dropInfo.rate) {
+        if (dropInfo.type === 'bee_bonus') {
+          playerAtk += 10;
+          showPopText(playerEl, `攻撃の巻物! ATK+10`, 'damage-pop success-pop');
+          saveGame();
+          return;
+        }
+
         const dropEl = document.createElement('div');
         dropEl.className = 'dropped-item';
         dropEl.style.left = enemyX + 'px';
@@ -1268,6 +1675,7 @@
         playerHp = playerMaxHp;
         showPopText(playerEl, 'LEVEL UP! (+10pt)', 'damage-pop lvl-pop');
       }
+      checkMissionsProgress();
       updateUI();
       saveGame();
     }
@@ -1302,6 +1710,78 @@
       isPaused = false;
     }
 
+    function openMission() {
+      if (!gameStarted) return;
+      isPaused = true;
+      bgmAudio.volume = 0.15;
+      checkMissionsProgress();
+      renderMissionList();
+      document.getElementById('missionModal').style.display = 'flex';
+    }
+
+    function closeMission() {
+      document.getElementById('missionModal').style.display = 'none';
+      bgmAudio.volume = 0.5;
+      isPaused = false;
+    }
+
+    function renderMissionList() {
+      const container = document.getElementById('missionListContent');
+      container.innerHTML = '';
+
+      const sortedMissions = [...missions].sort((a, b) => {
+        if (a.status === 'COMPLETED' && b.status !== 'COMPLETED') return 1;
+        if (a.status !== 'COMPLETED' && b.status === 'COMPLETED') return -1;
+        if (a.status === 'CLAIMABLE' && b.status === 'UNCOMPLETED') return -1;
+        if (a.status === 'UNCOMPLETED' && b.status === 'CLAIMABLE') return 1;
+        return a.id - b.id;
+      });
+
+      sortedMissions.forEach(m => {
+        const card = document.createElement('div');
+        card.className = `list-card mission-card ${m.status.toLowerCase()}`;
+        
+        let statusBadge = "";
+        if (m.status === "CLAIMABLE") {
+          statusBadge = `<span style="background-color:#FFD700; color:#000; font-weight:bold; padding:4px 8px; border-radius:6px; font-size:12px;">受取!</span>`;
+        } else if (m.status === "COMPLETED") {
+          statusBadge = `<span style="color:#aaa; font-size:12px;">【クリア済】</span>`;
+        } else {
+          statusBadge = `<span style="color:#6272a4; font-size:12px;">未達成</span>`;
+        }
+
+        card.innerHTML = `
+          <div class="card-info">
+            <span style="font-size:20px;">📜</span>
+            <div class="card-text">
+              <div style="font-weight:bold; color:${m.status === 'CLAIMABLE' ? '#f1fa8c' : '#fff'};">${m.title}</div>
+              <div style="font-size:11px; color:#aaa;">${m.desc} (報酬: 巻物)</div>
+            </div>
+          </div>
+          <div>${statusBadge}</div>
+        `;
+
+        card.onclick = () => {
+          if (m.status === "CLAIMABLE") {
+            m.status = "COMPLETED";
+            const randomScrolls = [
+              { id: 'atk_25', name: '攻撃の巻物 (25%)', img: 'makimono_1.png', rate: 0.25, type: 'atk', successRate: 0.25 },
+              { id: 'hp_25', name: 'HPの巻物 (25%)', img: 'makimono_2.png', rate: 0.25, type: 'hp', successRate: 0.25 },
+              { id: 'heal_25', name: '回復の巻物 (25%)', img: 'makimono_3.png', rate: 0.25, type: 'heal', successRate: 0.25 }
+            ];
+            const rewardItem = randomScrolls[Math.floor(Math.random() * randomScrolls.length)];
+            inventory.push({ ...rewardItem });
+
+            showPopText(playerEl, `ミッション達成! 巻物GET`, 'damage-pop success-pop');
+            saveGame();
+            renderMissionList();
+          }
+        };
+
+        container.appendChild(card);
+      });
+    }
+
     function openEnemyList() {
       renderEnemyList();
       document.getElementById('enemyListModal').style.display = 'flex';
@@ -1323,7 +1803,7 @@
       const container = document.getElementById('enemyListContent');
       container.innerHTML = '';
 
-      const allEnemies = [...normalEnemies, ...Object.values(bossEnemies)];
+      const allEnemies = [...normalEnemies, ...advancedEnemies, ...Object.values(bossEnemies), phoenixEnemy];
       allEnemies.forEach(e => {
         const card = document.createElement('div');
         card.className = 'list-card';
@@ -1354,12 +1834,18 @@
         card.className = 'list-card';
         card.style.cursor = 'pointer';
         card.onclick = () => showConfirm(index);
+
+        let subText = "つかう";
+        if (item.type === 'revive_feather') {
+          subText = "自動発動";
+        }
+
         card.innerHTML = `
           <div class="card-info">
             <img src="${item.img}" class="card-icon">
             <span class="card-text" style="font-weight:bold;">${item.name}</span>
           </div>
-          <span style="font-size:12px; color:#ff79c6; font-weight:bold;">つかう</span>
+          <span style="font-size:12px; color:#ff79c6; font-weight:bold;">${subText}</span>
         `;
         listEl.appendChild(card);
       });
@@ -1368,7 +1854,11 @@
     function showConfirm(index) {
       selectedItemIndex = index;
       const item = inventory[index];
-      document.getElementById('confirmText').textContent = `「${item.name}」を使用しますか？`;
+      if (item.type === 'revive_feather') {
+        document.getElementById('confirmText').textContent = `「${item.name}」は倒れた時に自動で消費され、HP50%で復活します。`;
+      } else {
+        document.getElementById('confirmText').textContent = `「${item.name}」を使用しますか？`;
+      }
       document.getElementById('confirmBox').style.display = 'block';
     }
 
@@ -1380,8 +1870,14 @@
     function useSelectedItem() {
       if (selectedItemIndex < 0 || selectedItemIndex >= inventory.length) return;
       const item = inventory[selectedItemIndex];
-      const isSuccess = Math.random() <= item.successRate;
 
+      if (item.type === 'revive_feather') {
+        showResultDialog("🪶 不死鳥の羽", "持っているだけで倒れた時に自動で復活します！", true);
+        closeConfirm();
+        return;
+      }
+
+      const isSuccess = Math.random() <= item.successRate;
       let titleText = "";
       let descText = "";
       let isSuccessFlag = false;
@@ -1457,7 +1953,7 @@
 
     function restartFromStage1() {
       playerHp = playerMaxHp;
-      initStage(1);
+      initStage(isEventStageMode ? 'EVENT' : 1);
     }
 
     function showPopText(targetEl, text, className) {
@@ -1491,7 +1987,6 @@
       }, 70);
     }
 
-    // タッチ制御
     const btnUp = document.getElementById('btnUp');
     const btnLeft = document.getElementById('btnLeft');
     const btnRight = document.getElementById('btnRight');
@@ -1533,13 +2028,14 @@
       if (e.key === 'z' || e.key === 'Z') { btnAttack.style.backgroundImage = "url('kougeki_1.png')"; }
     });
 
-    // プリロード
     const preloadList = [
       ...walkImages, ...attackImages,
       'haikei_1.png', 'teki_1.png', 'teki_2.png', 'teki_3.png', 'teki_4.png',
-      'bosu_1.png', 'bosu_2.png', 'bosu_3.png',
+      'teki_5.png', 'teki_6.png', 'teki_7.png', 'teki_8.png',
+      'bosu_1.png', 'bosu_2.png', 'bosu_3.png', 'bosu_4.png', 'bosu_5.png', 'bosu_6.png',
+      'fenikkusu.png', 'hane.png',
       'yazirusi_1.png', 'yazirusi_2.png', 'yazirusi_3.png', 'yazirusi_4.png',
-      'kougeki_1.png', 'kougeki_2.png', 'sukeruton_1.png', 'bag.png',
+      'kougeki_1.png', 'kougeki_2.png', 'sukeruton_1.png', 'hati_1.png', 'mahoutukai_1.png', 'bag.png',
       'makimono_1.png', 'makimono_2.png', 'makimono_3.png'
     ];
     preloadList.forEach((src) => { const img = new Image(); img.src = src; });
